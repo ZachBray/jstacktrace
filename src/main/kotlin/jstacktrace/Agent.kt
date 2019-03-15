@@ -2,30 +2,53 @@ package jstacktrace
 
 import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.asm.Advice
+import java.io.BufferedWriter
 import java.io.File
 import java.lang.instrument.Instrumentation
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardOpenOption
 
 fun premain(argument: String, instrumentation: Instrumentation) = main(argument, instrumentation)
 
 fun agentmain(argument: String, instrumentation: Instrumentation) = main(argument, instrumentation)
 
 private fun main(argument: String, instrumentation: Instrumentation) {
-    val filterFile = File(argument)
+    val filterFile = File(argument.substringBefore('|'))
     if (!filterFile.exists()) {
-        log("Filter file '$argument' does not exist.")
+        log("Filter file does not exist: $argument")
         return
     }
     val filterSpec = filterFile.readText()
+    val outputDir = File(argument.substringAfter('|'))
+    if (outputDir.exists() && outputDir.isFile) {
+        log("Output directory must be a directory not a file: $outputDir")
+        return
+    } else if (!outputDir.exists()) {
+        Files.createDirectories(outputDir.toPath())
+    }
 
-    attach(filterSpec, instrumentation)
+    attach(filterSpec, outputDir.toPath(), instrumentation)
 }
 
-fun attach(filterSpec: String, instrumentation: Instrumentation) {
+fun attach(filterSpec: String, outputDir: Path, instrumentation: Instrumentation) {
     val methodsByType = getSelectedMethods(filterSpec)
+    val writerCache = mutableMapOf<Thread, BufferedWriter>()
+    Arguments.writerFactory = { thread ->
+        writerCache.computeIfAbsent(thread) {
+            val path = outputDir.resolve("trace-${thread.id}.log")
+            if (Files.exists(path)) {
+                Files.delete(path)
+            }
+            val writer = Files.newBufferedWriter(path, StandardOpenOption.CREATE_NEW)
+            writer.write("Thread name: ${thread.name}")
+            writer.newLine()
+            writer
+        }
+    }
 
     println("Attaching jstacktrace...")
     val transformer = AgentBuilder.Default()
-     //       .with(AgentBuilder.Listener.StreamWriting.toSystemOut())
             .disableClassFormatChanges()
             .type { target -> methodsByType.containsKey(target.typeName) }
             .transform { builder, typeDescription, _, _ ->

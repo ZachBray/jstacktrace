@@ -1,11 +1,16 @@
 package jstacktrace
 
 import net.bytebuddy.asm.Advice
+import java.io.BufferedWriter
 
 class MutableInt(var value: Int = 0)
 
 object Stats {
     val callStackDepth = ThreadLocal<MutableInt>()
+}
+
+object Arguments {
+    var writerFactory: (Thread) -> BufferedWriter? = { null }
 }
 
 object MethodInterceptor {
@@ -14,6 +19,8 @@ object MethodInterceptor {
     fun onEnter(@Advice.Origin("#t::#m") method: String,
                 @Advice.AllArguments arguments: Array<Any>) {
 
+        val writer = Arguments.writerFactory(Thread.currentThread()) ?: return
+
         val depth = Stats.callStackDepth
 
         if (depth.get() == null) {
@@ -21,22 +28,23 @@ object MethodInterceptor {
         }
 
         for (i in 1..depth.get().value) {
-            print(" |")
+            writer.write(" |")
             if (i == depth.get().value) {
-                print("-> ")
+                writer.write("-> ")
             } else {
-                print("   ")
+                writer.write("   ")
             }
         }
-        print(method)
-        print("(")
+        writer.write(method)
+        writer.write("(")
         arguments.forEachIndexed { index, argument ->
             if (index != 0) {
-                print(", ")
+                writer.write(", ")
             }
-            print(argument)
+            writer.write(argument.toString())
         }
-        println(")")
+        writer.write(")")
+        writer.newLine()
 
         ++depth.get().value
     }
@@ -46,5 +54,8 @@ object MethodInterceptor {
     fun onExit() {
         val depth = Stats.callStackDepth
         --depth.get().value
+
+        val writer = Arguments.writerFactory(Thread.currentThread()) ?: return
+        writer.flush()
     }
 }

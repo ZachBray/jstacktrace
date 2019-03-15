@@ -28,10 +28,10 @@ fully.qualified.Type2::method1
 Second, run jstacktrace passing in the pid of the application you want to trace.
 
 ```bash
-java -jar jstacktrace-all.jar trace <PID> <FILTER-SPEC-FILE>
+java -jar jstacktrace-all.jar trace <PID> <FILTER-SPEC-FILE> <OUTPUT-DIR>
 ```
 
-This should write a trace of method calls to stdout. For example:
+This should write a trace of method calls of each thread to its own file under the output directory. For example:
 
 ```
 jstacktrace.TestFunctions::fib(5)
@@ -51,8 +51,3 @@ jstacktrace.TestFunctions::fib(5)
  |    |-> jstacktrace.TestFunctions::fib(1)
 
 ```
-
-## Road-map
-
-- [ ] Support filtering by thread
-- [ ] Support writing to file rather than stdout

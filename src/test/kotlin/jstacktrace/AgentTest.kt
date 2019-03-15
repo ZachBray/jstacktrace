@@ -4,17 +4,53 @@
 package jstacktrace
 
 import net.bytebuddy.agent.ByteBuddyAgent
+import org.agrona.IoUtil
+import java.nio.file.Files
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class AgentTest {
     @Test
     fun shouldTraceSelectedMethodCalls() {
-        val filterSpec = """
-            jstacktrace.TestFunctions::fib
-        """.trimIndent()
+        // Arrange
+        val tempDir = Files.createTempDirectory("jstacktrace-agent-test")
         val instrumentation = ByteBuddyAgent.install()
-        attach(filterSpec, instrumentation)
-        TestFunctions.fib(5)
+        try {
+            val filterSpec = """
+                jstacktrace.TestFunctions::fib
+            """.trimIndent()
+            // Act
+            attach(filterSpec, tempDir, instrumentation)
+            TestFunctions.fib(5)
+            // Assert
+            val threadId = Thread.currentThread().id
+            val expectedOutputFile = tempDir.resolve("trace-$threadId.log").toFile()
+            assertTrue(expectedOutputFile.exists())
+            assertEquals("""
+              Thread name: main
+              jstacktrace.TestFunctions::fib(5)
+               |-> jstacktrace.TestFunctions::fib(4)
+               |    |-> jstacktrace.TestFunctions::fib(3)
+               |    |    |-> jstacktrace.TestFunctions::fib(2)
+               |    |    |    |-> jstacktrace.TestFunctions::fib(1)
+               |    |    |    |-> jstacktrace.TestFunctions::fib(0)
+               |    |    |-> jstacktrace.TestFunctions::fib(1)
+               |    |-> jstacktrace.TestFunctions::fib(2)
+               |    |    |-> jstacktrace.TestFunctions::fib(1)
+               |    |    |-> jstacktrace.TestFunctions::fib(0)
+               |-> jstacktrace.TestFunctions::fib(3)
+               |    |-> jstacktrace.TestFunctions::fib(2)
+               |    |    |-> jstacktrace.TestFunctions::fib(1)
+               |    |    |-> jstacktrace.TestFunctions::fib(0)
+               |    |-> jstacktrace.TestFunctions::fib(1)
+
+            """.trimIndent(), expectedOutputFile.readText())
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            IoUtil.delete(tempDir.toFile(), true)
+        }
     }
 }
 

@@ -6,6 +6,7 @@ import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.convert
 import net.bytebuddy.agent.ByteBuddyAgent
 import java.io.File
+import java.nio.file.Files
 
 class App : CliktCommand() {
     override fun run() = Unit
@@ -22,10 +23,19 @@ class Trace : CliktCommand() {
         file
     }
 
+    private val outputDir : File by argument("output", help = "The directory to write traces into.").convert {
+        val file = File(it)
+        if (file.exists() && !file.isDirectory) {
+            fail("Output directory should be a directory not a file.")
+        } else if (!file.exists()) {
+            Files.createDirectories(file.toPath())
+        }
+        file
+    }
 
     override fun run() {
         val jarLocation = File(Trace::class.java.protectionDomain.codeSource.location.toURI().path)
-        ByteBuddyAgent.attach(jarLocation, processId, filterFile.absolutePath)
+        ByteBuddyAgent.attach(jarLocation, processId, "${filterFile.absolutePath}|${outputDir.absolutePath}")
     }
 }
 

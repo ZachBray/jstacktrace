@@ -17,6 +17,7 @@ dependencies {
     implementation("net.bytebuddy:byte-buddy-agent:1.9.10")
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
+    testImplementation("org.agrona:agrona:0.9.4")
 }
 
 application {
