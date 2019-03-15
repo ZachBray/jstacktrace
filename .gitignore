@@ -5,3 +5,4 @@ build
 # Idea
 .idea
 *.iml
+out

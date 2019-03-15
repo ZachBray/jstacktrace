@@ -11,6 +11,9 @@ repositories {
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    implementation("com.github.ajalt:clikt:1.6.0")
+    implementation("net.bytebuddy:byte-buddy:1.9.10")
+    implementation("net.bytebuddy:byte-buddy-agent:1.9.10")
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
 }
@@ -34,6 +37,7 @@ val jar: Jar by tasks
 jar.apply {
     manifest {
         attributes(mapOf(
+                "Premain-Class" to "jstacktrace.AgentKt",
                 "Agent-Class" to "jstacktrace.AgentKt",
                 "Can-Redefine-Classes" to "true",
                 "Can-Retransform-Classes" to "true"
