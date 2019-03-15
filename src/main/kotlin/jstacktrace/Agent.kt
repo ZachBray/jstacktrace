@@ -23,8 +23,10 @@ private fun main(argument: String, instrumentation: Instrumentation) {
 fun attach(filterSpec: String, instrumentation: Instrumentation) {
     val methodsByType = getSelectedMethods(filterSpec)
 
+    println("Attaching jstacktrace...")
     val transformer = AgentBuilder.Default()
      //       .with(AgentBuilder.Listener.StreamWriting.toSystemOut())
+            .disableClassFormatChanges()
             .type { target -> methodsByType.containsKey(target.typeName) }
             .transform { builder, typeDescription, _, _ ->
                 println("Transforming: ${typeDescription.name}")
@@ -36,7 +38,6 @@ fun attach(filterSpec: String, instrumentation: Instrumentation) {
             .makeRaw()
 
     instrumentation.addTransformer(transformer, true)
-    /*
     instrumentation.allLoadedClasses
             .filter { methodsByType.containsKey(it.typeName) }
             .filter { instrumentation.isModifiableClass(it) }
@@ -44,7 +45,8 @@ fun attach(filterSpec: String, instrumentation: Instrumentation) {
                 println("Registering: ${it.name}")
                 instrumentation.retransformClasses(it)
             }
-            */
+
+    println("jstacktrace attached.")
 }
 
 private fun getSelectedMethods(filterSpec: String): MutableMap<String, Set<String>> {
