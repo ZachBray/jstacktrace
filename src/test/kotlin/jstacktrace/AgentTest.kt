@@ -20,6 +20,7 @@ class AgentTest {
             val filterSpec = """
                 jstacktrace.TestFunctions::fib
             """.trimIndent()
+            Arguments.time = { 100 }
             // Act
             attach(filterSpec, tempDir, instrumentation)
             TestFunctions.fib(5)
@@ -29,21 +30,31 @@ class AgentTest {
             assertTrue(expectedOutputFile.exists())
             assertEquals("""
               Thread name: main
-              jstacktrace.TestFunctions::fib(5)
-               |-> jstacktrace.TestFunctions::fib(4)
-               |    |-> jstacktrace.TestFunctions::fib(3)
-               |    |    |-> jstacktrace.TestFunctions::fib(2)
-               |    |    |    |-> jstacktrace.TestFunctions::fib(1)
-               |    |    |    |-> jstacktrace.TestFunctions::fib(0)
-               |    |    |-> jstacktrace.TestFunctions::fib(1)
-               |    |-> jstacktrace.TestFunctions::fib(2)
-               |    |    |-> jstacktrace.TestFunctions::fib(1)
-               |    |    |-> jstacktrace.TestFunctions::fib(0)
-               |-> jstacktrace.TestFunctions::fib(3)
-               |    |-> jstacktrace.TestFunctions::fib(2)
-               |    |    |-> jstacktrace.TestFunctions::fib(1)
-               |    |    |-> jstacktrace.TestFunctions::fib(0)
-               |    |-> jstacktrace.TestFunctions::fib(1)
+              [ms: 100] jstacktrace.TestFunctions::fib(5)
+              [ms: 100]  |-> jstacktrace.TestFunctions::fib(4)
+              [ms: 100]  |    |-> jstacktrace.TestFunctions::fib(3)
+              [ms: 100]  |    |    |-> jstacktrace.TestFunctions::fib(2)
+              [ms: 100]  |    |    |    |-> jstacktrace.TestFunctions::fib(1)
+              [ms: 100]  |    |    |    |-> jstacktrace.TestFunctions::fib(0)
+              [ms: 200]  |    |    |    |    |-o took: 100 ms
+              [ms: 200]  |    |    |    |-o took: 100 ms
+              [ms: 200]  |    |    |-> jstacktrace.TestFunctions::fib(1)
+              [ms: 200]  |    |    |-o took: 100 ms
+              [ms: 200]  |    |-> jstacktrace.TestFunctions::fib(2)
+              [ms: 200]  |    |    |-> jstacktrace.TestFunctions::fib(1)
+              [ms: 200]  |    |    |-> jstacktrace.TestFunctions::fib(0)
+              [ms: 300]  |    |    |    |-o took: 100 ms
+              [ms: 300]  |    |    |-o took: 100 ms
+              [ms: 300]  |    |-o took: 200 ms
+              [ms: 300]  |-> jstacktrace.TestFunctions::fib(3)
+              [ms: 300]  |    |-> jstacktrace.TestFunctions::fib(2)
+              [ms: 300]  |    |    |-> jstacktrace.TestFunctions::fib(1)
+              [ms: 300]  |    |    |-> jstacktrace.TestFunctions::fib(0)
+              [ms: 400]  |    |    |    |-o took: 100 ms
+              [ms: 400]  |    |    |-o took: 100 ms
+              [ms: 400]  |    |-> jstacktrace.TestFunctions::fib(1)
+              [ms: 400]  |    |-o took: 100 ms
+              [ms: 400]  |-o took: 300 ms
 
             """.trimIndent(), expectedOutputFile.readText())
         } catch (e: Exception) {
@@ -56,7 +67,11 @@ class AgentTest {
 
 object TestFunctions {
     fun fib(n: Int): Int =
-            if (n == 0) 0
+            if (n == 0) {
+                val t = Arguments.time()
+                Arguments.time = { t + 100 }
+                0
+            }
             else if (n == 1) 0
             else fib(n - 1) + fib(n - 2)
 }

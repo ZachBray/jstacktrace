@@ -8,6 +8,7 @@ import java.lang.instrument.Instrumentation
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import kotlin.concurrent.getOrSet
 
 fun premain(argument: String, instrumentation: Instrumentation) = main(argument, instrumentation)
 
@@ -33,9 +34,9 @@ private fun main(argument: String, instrumentation: Instrumentation) {
 
 fun attach(filterSpec: String, outputDir: Path, instrumentation: Instrumentation) {
     val methodsByType = getSelectedMethods(filterSpec)
-    val writerCache = mutableMapOf<Thread, BufferedWriter>()
+    val writerCache = ThreadLocal<BufferedWriter>()
     Arguments.writerFactory = { thread ->
-        writerCache.computeIfAbsent(thread) {
+        writerCache.getOrSet {
             val path = outputDir.resolve("trace-${thread.id}.log")
             if (Files.exists(path)) {
                 Files.delete(path)
