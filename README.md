@@ -16,8 +16,8 @@ convenient.
 
 ## Usage
 
-First, create a filter specification file to describe which methods to trace. This file should contain lines in the
-format described below.
+Before tracing, we must create a filter specification file to describe which methods to trace.
+This file should contain lines in the format described below.
 
 ```
 fully.qualified.Type1::method1
@@ -25,13 +25,41 @@ fully.qualified.Type1::method2
 fully.qualified.Type2::method1
 ```
 
-Second, run jstacktrace passing in the pid of the application you want to trace.
+We also need to obtain the a jstacktrace release from GitHub.
+
+```bash
+wget https://github.com/ZachBray/jstacktrace/releases/download/v0.1.0/jstacktrace-all.jar
+```
+
+### Attach to an existing process
+
+To attach to an existing process, we run jstacktrace passing in the pid of the application you want to trace.
 
 ```bash
 java -jar jstacktrace-all.jar trace <PID> <FILTER-SPEC-FILE> <OUTPUT-DIR>
 ```
 
-This should write a trace of method calls of each thread to its own file under the output directory. For example:
+### Attach when starting a process
+
+To run jstacktace from process start, we use JVM args.
+
+```bash
+java -javaagent:path/to/jstacktrace-all.jar=<FILTER-SPEC-FILE>|<OUTPUT-DIR> ...
+```
+
+### Attach to Gradle test
+
+To attach to a Gradle test, we can use JVM args like above. Edit our the relevant `build.gradle` and configure the test section to pass in our `-javaagent` JVM arg.
+
+```gradle
+test {
+  jvmArgs '-javaagent:path/to/jstacktrace-all.jar=<FILTER-SPEC-FILE>|<OUTPUT-DIR>'
+}
+```
+
+## Output
+
+Attaching to a process using any of the methods above should write a trace of method calls of each thread to its own file under the output directory. For example:
 
 ```
 jstacktrace.TestFunctions::fib(5)
